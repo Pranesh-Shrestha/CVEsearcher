@@ -39,28 +39,51 @@ end_datetime = datetime.combine(end_date, datetime.max.time())
 if st.button("Fetch CVE Data"):
     with st.spinner("Fetching data from NVD..."):
         success, result = fetch_cve_data(start_datetime, end_datetime)
-        
+
         if success:
             filtered_cves = filter_cves_with_cpe(result)
-            
+
             if filtered_cves:
                 # Convert to DataFrame for better display
                 df = pd.DataFrame(filtered_cves)
-                
+
+                # Convert published date to datetime for sorting
+                df['published_dt'] = pd.to_datetime(df['published'])
+                df = df.sort_values('published_dt', ascending=False)
+
                 # Display summary statistics
                 st.subheader("Summary Statistics")
-                col1, col2 = st.columns(2)
+                col1, col2, col3 = st.columns(3)
                 with col1:
                     st.metric("Total CVEs Found", len(filtered_cves))
                 with col2:
                     avg_severity = pd.to_numeric(df['severity'], errors='coerce').mean()
                     st.metric("Average Severity Score", f"{avg_severity:.2f}")
-                
-                # Display the data
-                st.subheader("CVE Details")
-                
+                with col3:
+                    new_cves = len(df[df['published_dt'] > (datetime.now() - timedelta(days=1))])
+                    st.metric("New CVEs (Last 24h)", new_cves)
+
+                # Display latest CVEs section
+                st.subheader("🆕 Latest CVEs")
+                st.markdown("**Most recently published vulnerabilities:**")
+
+                # Display the 5 most recent CVEs in a special format
+                for _, cve in df.head(5).iterrows():
+                    with st.container():
+                        st.markdown(f"""
+                        <div style='padding: 10px; border-left: 3px solid #ff4b4b; margin-bottom: 10px;'>
+                            <h3 style='color: #ff4b4b; margin: 0;'>{cve['id']}</h3>
+                            <p><strong>Severity:</strong> {cve['severity']}</p>
+                            <p><strong>Published:</strong> {cve['published']}</p>
+                            <p>{cve['description']}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                # Display all CVE details
+                st.subheader("📋 All CVE Details")
+
                 # Create expandable sections for each CVE
-                for cve in filtered_cves:
+                for _, cve in df.iterrows():
                     with st.expander(f"{cve['id']} - Severity: {cve['severity']}"):
                         st.markdown(f"**Description:** {cve['description']}")
                         st.markdown(f"**Published:** {cve['published']}")

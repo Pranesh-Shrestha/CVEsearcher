@@ -64,20 +64,29 @@ if st.button("Fetch CVE Data"):
                     st.metric("New CVEs (Last 24h)", new_cves)
 
                 # Display latest CVEs section
-                st.subheader("🆕 Latest CVEs")
-                st.markdown("**Most recently published vulnerabilities:**")
+                st.subheader("🆕 Latest Critical CVEs")
+                st.markdown("**Most recently published critical vulnerabilities (CVSS Score >= 9.0):**")
 
-                # Display the 5 most recent CVEs in a special format
-                for _, cve in df.head(5).iterrows():
-                    with st.container():
-                        st.markdown(f"""
-                        <div style='padding: 10px; border-left: 3px solid #ff4b4b; margin-bottom: 10px;'>
-                            <h3 style='color: #ff4b4b; margin: 0;'>{cve['id']}</h3>
-                            <p><strong>Severity:</strong> {cve['severity']}</p>
-                            <p><strong>Published:</strong> {cve['published']}</p>
-                            <p>{cve['description']}</p>
-                        </div>
-                        """, unsafe_allow_html=True)
+                # Filter for critical CVEs (severity >= 9.0)
+                critical_df = df[pd.to_numeric(df['severity'], errors='coerce') >= 9.0]
+                critical_df = critical_df.sort_values('published_dt', ascending=False)
+
+                if not critical_df.empty:
+                    # Display the 10 most recent critical CVEs in a special format
+                    for _, cve in critical_df.head(10).iterrows():
+                        with st.container():
+                            st.markdown(f"""
+                            <div style='padding: 10px; border-left: 5px solid #ff0000; margin-bottom: 10px; background-color: rgba(255, 0, 0, 0.05);'>
+                                <h3 style='color: #ff0000; margin: 0;'>{cve['id']} - Critical Severity</h3>
+                                <p><strong>Severity Score:</strong> {cve['severity']}</p>
+                                <p><strong>Published:</strong> {cve['published']}</p>
+                                <p>{cve['description']}</p>
+                                <p><strong>Affected Components:</strong></p>
+                                <pre style='background-color: #f0f0f0; padding: 5px;'>{chr(10).join(cve['cpe_nodes'][:3])}{'...' if len(cve['cpe_nodes']) > 3 else ''}</pre>
+                            </div>
+                            """, unsafe_allow_html=True)
+                else:
+                    st.info("No critical severity CVEs found in the specified date range.")
 
                 # Display all CVE details
                 st.subheader("📋 All CVE Details")

@@ -72,8 +72,25 @@ if st.button("Fetch CVE Data"):
                 critical_df = critical_df.sort_values('published_dt', ascending=False)
 
                 if not critical_df.empty:
-                    # Display the 10 most recent critical CVEs in a special format
-                    for _, cve in critical_df.head(10).iterrows():
+                    # Get the latest critical CVE
+                    latest_critical = critical_df.iloc[0]
+                    st.markdown("""
+                    ### 🚨 Most Recent Critical CVE
+                    """)
+                    st.markdown(f"""
+                    <div style='padding: 15px; border: 2px solid #ff0000; margin-bottom: 20px; background-color: rgba(255, 0, 0, 0.05);'>
+                        <h2 style='color: #ff0000; margin: 0;'>{latest_critical['id']}</h2>
+                        <p><strong>CVSS Score:</strong> {latest_critical['severity']}</p>
+                        <p><strong>Published:</strong> {latest_critical['published']}</p>
+                        <p><strong>Description:</strong> {latest_critical['description']}</p>
+                        <p><strong>Affected Components (CPEs):</strong></p>
+                        <pre style='background-color: #f0f0f0; padding: 10px;'>{chr(10).join(latest_critical['cpe_nodes'])}</pre>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    # Display other recent critical CVEs
+                    st.markdown("### Other Recent Critical CVEs")
+                    for _, cve in critical_df.iloc[1:10].iterrows():
                         with st.container():
                             st.markdown(f"""
                             <div style='padding: 10px; border-left: 5px solid #ff0000; margin-bottom: 10px; background-color: rgba(255, 0, 0, 0.05);'>
